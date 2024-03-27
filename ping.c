@@ -13,7 +13,16 @@
 #include <sys/time.h>
 
 #define TIMEOUT_SECONDS 5 // Délai d'attente pour la réponse ICMP Echo Reply
-#define ICMP_DATA_SIZE 56 // Taille des données à envoyer dans le paquet ICMP
+// Taille de l'en-tête ICMP plus la taille de struct timeval pour le timestamp
+#define ICMP_HEADER_SIZE sizeof(struct icmphdr)
+#define ICMP_DATA_SIZE 56 // Taille des données ICMP
+#define TOTAL_ICMP_SIZE (ICMP_HEADER_SIZE + ICMP_DATA_SIZE) // Taille totale du paquet ICMP
+
+struct // Stocker le temps pour le calcul du RTT
+{
+    struct timeval send_time;
+    struct timeval recv_time;
+} ping_time;
 
 // Calcul du checksum pour l'en-tête ICMP avec les données fournies : b étant l'en-tête ICMP et len sa taille
 unsigned short checksum(void *b, int len) {
@@ -34,7 +43,7 @@ unsigned short checksum(void *b, int len) {
 // Envoi d'un paquet ICMP Echo Request
 void send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
     static int seq_no = 0; // Numéro de séquence pour les paquets ICMP
-    char packet[sizeof(struct icmphdr) + ICMP_DATA_SIZE]; // Paquet ICMP
+    char packet[TOTAL_ICMP_SIZE]; // Paquet ICMP
     struct icmphdr *icmp_hdr = (struct icmphdr *) packet; // En-tête ICMP
 
     // Configuration de l'en-tête ICMP
@@ -45,13 +54,25 @@ void send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
     icmp_hdr->un.echo.id = htons(getpid());
 
     // Ajout de données après l'en-tête ICMP pour simuler une charge utile
-    memset(packet + sizeof(struct icmphdr), 'Q', ICMP_DATA_SIZE); // Données arbitraires
+    memset(packet + sizeof(struct icmphdr), 'A', ICMP_DATA_SIZE);
     icmp_hdr->checksum = checksum(packet, sizeof(packet));
+
+    // Récupération du temps d'envoi
+    gettimeofday(&ping_time.send_time, NULL);
 
     // Envoi du paquet
     if (sendto(sockfd, packet, sizeof(packet), 0, (struct sockaddr *) dest_addr, sizeof(*dest_addr)) <= 0) {
         perror("sendto failed");
     }
+
+    // Afficher les informations du paquet ICMP Echo Request envoyé
+    printf("Ping sent\n");
+    printf("Sent %lu bytes\n", sizeof(packet));
+    printf("Sequence number: %d\n", ntohs(icmp_hdr->un.echo.sequence));
+    printf("ID: %d\n", ntohs(icmp_hdr->un.echo.id));
+    printf("Checksum: %d\n", ntohs(icmp_hdr->checksum));
+    printf("Data: %.*s\n", ICMP_DATA_SIZE, packet + sizeof(struct icmphdr));
+
 }
 
 // Réception de la réponse ICMP Echo Reply
@@ -76,6 +97,9 @@ void receive_echo_reply(int sockfd) {
         printf("Ping timed out.\n"); // Délai d'attente dépassé
     } else {
         if (FD_ISSET(sockfd, &readfds)) { // Réception d'un paquet ICMP
+            // On commence par stocker le temps de réception
+            gettimeofday(&ping_time.recv_time, NULL);
+            // Récupération du paquet ICMP
             struct sockaddr_in from;
             socklen_t len = sizeof(from);
             if (recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &len) >
@@ -102,23 +126,33 @@ void receive_echo_reply(int sockfd) {
                         return;
                     }
 
+                    // Calcul du RTT
+                    long rtt = (ping_time.recv_time.tv_sec - ping_time.send_time.tv_sec) * 1000000 +
+                               (ping_time.recv_time.tv_usec - ping_time.send_time.tv_usec);
+
+                    // Affichage du RTT en ms
+                    printf("RTT: %ld ms\n", rtt / 1000);
+
                     // Affichage de l'adresse IP de l'émetteur
                     char sender_ip[INET_ADDRSTRLEN];
                     inet_ntop(AF_INET, &from.sin_addr, sender_ip, sizeof(sender_ip));
                     printf("Received from: %s\n", sender_ip);
 
-                    // Calcul du temps de réponse
-                    struct timeval tv_recv, *tv_send;
-                    gettimeofday(&tv_recv, NULL); // Temps de réception
-                    tv_send = (struct timeval *) (buffer + sizeof(struct iphdr) +
-                                                  sizeof(struct icmphdr)); // Temps d'envoi extrait du paquet
 
-                    // Calcul du RTT
-                    long rtt_usec =
-                            (tv_recv.tv_sec - tv_send->tv_sec) * 1000000L + (tv_recv.tv_usec - tv_send->tv_usec);
-                    printf("RTT: %ld microseconds\n", rtt_usec);
                 } else {
                     printf("Received packet was not a ping reply or did not match the sent ID\n");
+
+                    // On affiche le type de message ICMP reçu
+                    if (icmp_hdr->type == ICMP_ECHOREPLY) {
+                        printf("Received ICMP Echo Reply\n");
+                    } else if (icmp_hdr->type == ICMP_ECHO) {
+                        printf("Received ICMP Echo Request\n");
+                    } else {
+                        printf("Received ICMP type: %d\n", icmp_hdr->type);
+                    }
+
+                    // On affiche l'ID du message ICMP reçu
+                    printf("Received ICMP ID: %d\n", ntohs(icmp_hdr->un.echo.id));
                 }
             } else {
                 perror("recvfrom failed");
