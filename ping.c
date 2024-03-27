@@ -13,16 +13,12 @@
 #include <sys/time.h>
 
 #define TIMEOUT_SECONDS 5 // Délai d'attente pour la réponse ICMP Echo Reply
-// Taille de l'en-tête ICMP plus la taille de struct timeval pour le timestamp
+// Taille de l'en-tête ICMP et des données ICMP
 #define ICMP_HEADER_SIZE sizeof(struct icmphdr)
-#define ICMP_DATA_SIZE 56 // Taille des données ICMP
-#define TOTAL_ICMP_SIZE (ICMP_HEADER_SIZE + ICMP_DATA_SIZE) // Taille totale du paquet ICMP
-
-struct // Stocker le temps pour le calcul du RTT
-{
-    struct timeval send_time;
-    struct timeval recv_time;
-} ping_time;
+#define TIMESTAMP_SIZE sizeof(struct timeval)
+#define ICMP_DATA_SIZE 56
+// Assurez-vous que la taille totale inclut le timestamp
+#define TOTAL_ICMP_SIZE (ICMP_HEADER_SIZE + TIMESTAMP_SIZE + ICMP_DATA_SIZE)
 
 // Calcul du checksum pour l'en-tête ICMP avec les données fournies : b étant l'en-tête ICMP et len sa taille
 unsigned short checksum(void *b, int len) {
@@ -53,12 +49,14 @@ void send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
     icmp_hdr->un.echo.sequence = htons(seq_no++);
     icmp_hdr->un.echo.id = htons(getpid());
 
-    // Ajout de données après l'en-tête ICMP pour simuler une charge utile
-    memset(packet + sizeof(struct icmphdr), 'A', ICMP_DATA_SIZE);
-    icmp_hdr->checksum = checksum(packet, sizeof(packet));
+    // Insérer le timestamp juste après l'en-tête ICMP
+    struct timeval *tv_send = (struct timeval *)(packet + ICMP_HEADER_SIZE);
+    gettimeofday(tv_send, NULL);
 
-    // Récupération du temps d'envoi
-    gettimeofday(&ping_time.send_time, NULL);
+    // Remplir le reste du paquet avec des données
+    memset(packet + ICMP_HEADER_SIZE + TIMESTAMP_SIZE, 'A', ICMP_DATA_SIZE);
+
+    icmp_hdr->checksum = checksum(packet, sizeof(packet));
 
     // Envoi du paquet
     if (sendto(sockfd, packet, sizeof(packet), 0, (struct sockaddr *) dest_addr, sizeof(*dest_addr)) <= 0) {
@@ -97,13 +95,15 @@ void receive_echo_reply(int sockfd) {
         printf("Ping timed out.\n"); // Délai d'attente dépassé
     } else {
         if (FD_ISSET(sockfd, &readfds)) { // Réception d'un paquet ICMP
-            // On commence par stocker le temps de réception
-            gettimeofday(&ping_time.recv_time, NULL);
             // Récupération du paquet ICMP
             struct sockaddr_in from;
             socklen_t len = sizeof(from);
             if (recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &len) >
                 0) { // Lecture du paquet ICMP
+                // Extraire le timestamp envoyé
+                struct timeval tv_recv, *tv_send;
+                gettimeofday(&tv_recv, NULL);
+
                 struct iphdr *ip_hdr = (struct iphdr *) buffer;
                 struct icmphdr *icmp_hdr = (struct icmphdr *) (buffer + sizeof(struct iphdr));
 
@@ -126,17 +126,15 @@ void receive_echo_reply(int sockfd) {
                         return;
                     }
 
-                    // Calcul du RTT
-                    long rtt = (ping_time.recv_time.tv_sec - ping_time.send_time.tv_sec) * 1000000 +
-                               (ping_time.recv_time.tv_usec - ping_time.send_time.tv_usec);
-
-                    // Affichage du RTT en ms
-                    printf("RTT: %ld ms\n", rtt / 1000);
-
                     // Affichage de l'adresse IP de l'émetteur
                     char sender_ip[INET_ADDRSTRLEN];
                     inet_ntop(AF_INET, &from.sin_addr, sender_ip, sizeof(sender_ip));
                     printf("Received from: %s\n", sender_ip);
+
+                    // Affichage du timestamp envoyé
+                    tv_send = (struct timeval *)(buffer + (ip_hdr->ihl * 4) + ICMP_HEADER_SIZE);
+                    long rtt_ms = (tv_recv.tv_sec - tv_send->tv_sec) * 1000 + (tv_recv.tv_usec - tv_send->tv_usec) / 1000;
+                    printf("RTT: %ld ms\n", rtt_ms);
 
 
                 } else {
