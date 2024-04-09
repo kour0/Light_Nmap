@@ -1,24 +1,4 @@
-//
-// Created by kour0 on 3/26/24.
-//
-
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip_icmp.h>
-#include <arpa/inet.h>
-#include <sys/time.h>
-
-#define TIMEOUT_SECONDS 5 // Délai d'attente pour la réponse ICMP Echo Reply
-// Taille de l'en-tête ICMP et des données ICMP
-#define ICMP_HEADER_SIZE sizeof(struct icmphdr)
-#define TIMESTAMP_SIZE sizeof(struct timeval)
-#define ICMP_DATA_SIZE 56
-// Assurez-vous que la taille totale inclut le timestamp
-#define TOTAL_ICMP_SIZE (ICMP_HEADER_SIZE + TIMESTAMP_SIZE + ICMP_DATA_SIZE)
+#include "ping.h"
 
 // Calcul du checksum pour l'en-tête ICMP avec les données fournies : b étant l'en-tête ICMP et len sa taille
 unsigned short checksum(void *b, int len) {
@@ -40,14 +20,15 @@ unsigned short checksum(void *b, int len) {
 void send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
     static int seq_no = 0; // Numéro de séquence pour les paquets ICMP
     char packet[TOTAL_ICMP_SIZE]; // Paquet ICMP
-    struct icmphdr *icmp_hdr = (struct icmphdr *) packet; // En-tête ICMP
+    struct icmp *icmp_hdr = (struct icmp *) packet; // En-tête ICMP
 
     // Configuration de l'en-tête ICMP
     memset(packet, 0, sizeof(packet));
-    icmp_hdr->type = ICMP_ECHO;
-    icmp_hdr->code = 0;
-    icmp_hdr->un.echo.sequence = htons(seq_no++);
-    icmp_hdr->un.echo.id = htons(getpid());
+    icmp_hdr->icmp_type = ICMP_ECHO;
+    icmp_hdr->icmp_code = 0;
+    icmp_hdr->icmp_cksum = 0;
+    icmp_hdr->icmp_seq = htons(seq_no++);
+    icmp_hdr->icmp_id = htons(getpid());
 
     // Insérer le timestamp juste après l'en-tête ICMP
     struct timeval *tv_send = (struct timeval *)(packet + ICMP_HEADER_SIZE);
@@ -56,7 +37,7 @@ void send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
     // Remplir le reste du paquet avec des données
     memset(packet + ICMP_HEADER_SIZE + TIMESTAMP_SIZE, 'A', ICMP_DATA_SIZE);
 
-    icmp_hdr->checksum = checksum(packet, sizeof(packet));
+    icmp_hdr->icmp_cksum = checksum(packet, sizeof(packet));
 
     // Envoi du paquet
     if (sendto(sockfd, packet, sizeof(packet), 0, (struct sockaddr *) dest_addr, sizeof(*dest_addr)) <= 0) {
@@ -66,10 +47,10 @@ void send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
     // Afficher les informations du paquet ICMP Echo Request envoyé
     printf("Ping sent\n");
     printf("Sent %lu bytes\n", sizeof(packet));
-    printf("Sequence number: %d\n", ntohs(icmp_hdr->un.echo.sequence));
-    printf("ID: %d\n", ntohs(icmp_hdr->un.echo.id));
-    printf("Checksum: %d\n", ntohs(icmp_hdr->checksum));
-    printf("Data: %.*s\n", ICMP_DATA_SIZE, packet + sizeof(struct icmphdr));
+    printf("Sequence number: %d\n", ntohs(icmp_hdr->icmp_seq));
+    printf("ID: %d\n", ntohs(icmp_hdr->icmp_id));
+    printf("Checksum: %d\n", ntohs(icmp_hdr->icmp_cksum));
+    printf("Data: %.*s\n", ICMP_DATA_SIZE, packet + sizeof(struct icmp));
 
 }
 
@@ -104,23 +85,23 @@ void receive_echo_reply(int sockfd) {
                 struct timeval tv_recv, *tv_send;
                 gettimeofday(&tv_recv, NULL);
 
-                struct iphdr *ip_hdr = (struct iphdr *) buffer;
-                struct icmphdr *icmp_hdr = (struct icmphdr *) (buffer + sizeof(struct iphdr));
+                struct ip *ip_hdr = (struct ip *) buffer;
+                struct icmp *icmp_hdr = (struct icmp *) (buffer + sizeof(struct ip));
 
                 // Vérification du type de message ICMP et de l'ID
-                if (icmp_hdr->type == ICMP_ECHOREPLY && ntohs(icmp_hdr->un.echo.id) == getpid()) {
+                if (icmp_hdr->icmp_type == ICMP_ECHOREPLY && ntohs(icmp_hdr->icmp_id) == getpid()) {
                     printf("Ping reply received\n");
 
                     // On récupère le paquet ICMP Echo Reply
-                    printf("Received %d bytes\n", ntohs(ip_hdr->tot_len));
-                    printf("TTL: %d\n", ip_hdr->ttl);
+                    printf("Received %d bytes\n", ntohs(ip_hdr->ip_len));
+                    printf("TTL: %d\n", ip_hdr->ip_ttl);
 
                     // On vérifie si le paquet ICMP Echo Reply est valide en vérifiant le checksum
-                    unsigned short checksum_received = icmp_hdr->checksum;
-                    icmp_hdr->checksum = 0;
+                    unsigned short checksum_received = icmp_hdr->icmp_cksum;
+                    icmp_hdr->icmp_cksum = 0;
                     unsigned short checksum_calculated = checksum(icmp_hdr,
-                                                                  ntohs(ip_hdr->tot_len) - sizeof(struct iphdr));
-                    icmp_hdr->checksum = checksum_received;
+                                                                  ntohs(ip_hdr->ip_len) - sizeof(struct ip));
+                    icmp_hdr->icmp_cksum = checksum_received;
                     if (checksum_received != checksum_calculated) {
                         printf("Invalid checksum\n");
                         return;
@@ -132,7 +113,7 @@ void receive_echo_reply(int sockfd) {
                     printf("Received from: %s\n", sender_ip);
 
                     // Affichage du timestamp envoyé
-                    tv_send = (struct timeval *)(buffer + (ip_hdr->ihl * 4) + ICMP_HEADER_SIZE);
+                    tv_send = (struct timeval *)(buffer + (ip_hdr->ip_hl * 4) + ICMP_HEADER_SIZE);
                     long rtt_ms = (tv_recv.tv_sec - tv_send->tv_sec) * 1000 + (tv_recv.tv_usec - tv_send->tv_usec) / 1000;
                     printf("RTT: %ld ms\n", rtt_ms);
 
@@ -141,16 +122,16 @@ void receive_echo_reply(int sockfd) {
                     printf("Received packet was not a ping reply or did not match the sent ID\n");
 
                     // On affiche le type de message ICMP reçu
-                    if (icmp_hdr->type == ICMP_ECHOREPLY) {
+                    if (icmp_hdr->icmp_type == ICMP_ECHOREPLY) {
                         printf("Received ICMP Echo Reply\n");
-                    } else if (icmp_hdr->type == ICMP_ECHO) {
+                    } else if (icmp_hdr->icmp_type == ICMP_ECHO) {
                         printf("Received ICMP Echo Request\n");
                     } else {
-                        printf("Received ICMP type: %d\n", icmp_hdr->type);
+                        printf("Received ICMP type: %d\n", icmp_hdr->icmp_type);
                     }
 
                     // On affiche l'ID du message ICMP reçu
-                    printf("Received ICMP ID: %d\n", ntohs(icmp_hdr->un.echo.id));
+                    printf("Received ICMP ID: %d\n", ntohs(icmp_hdr->icmp_id));
                 }
             } else {
                 perror("recvfrom failed");
@@ -159,7 +140,7 @@ void receive_echo_reply(int sockfd) {
     }
 }
 
-int main(int argc, char *argv[]) {
+/*int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Usage: %s <destination IP>\n", argv[0]);
         return 1;
@@ -181,4 +162,4 @@ int main(int argc, char *argv[]) {
 
     close(sockfd);
     return 0;
-}
+}*/
