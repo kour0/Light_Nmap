@@ -64,3 +64,5 @@ a.out
 *.iml
 *.ipr
 *.iws
+# CMake
+cmake-build-debug/
