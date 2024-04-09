@@ -58,3 +58,9 @@ dkms.conf
 
 # Executables without extensions
 a.out
+
+#CLion Projects Files
+.idea/
+*.iml
+*.ipr
+*.iws
