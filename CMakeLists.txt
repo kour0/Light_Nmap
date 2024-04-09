@@ -8,7 +8,9 @@ include_directories(.)
 add_executable(server
         ping.c
         ping.h
-        server.c)
+        server.c
+        commands.c
+        commands.h)
 
 add_executable(client
         client.c)

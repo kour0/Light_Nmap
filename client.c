@@ -51,9 +51,10 @@ int main(int argc, char *argv[]) {
 
         ssize_t res = recv(sockfd, buffer, 255, 0);
         if (res > 0) {
-            printf("\nMessage from server: %s\n", buffer);
+            printf("\nServer: %s\n", buffer);
         }
 
+        bzero(buffer, BUFFER_SIZE);
 
     }
 

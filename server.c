@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "commands.h"
 
 #define PORT 2222
 #define BUFFER_SIZE 1024
@@ -11,14 +12,14 @@
 
 int main() {
     printf("Server is starting...\n");
-    int server_fd, dialogSocket;
+    int server_fd, client_fd;
     struct sockaddr_in serverAddress;
     struct sockaddr_in clientAddress;
     int clientAddressLength;
 
 
     char buffer[BUFFER_SIZE] = {0};
-    char response[BUFFER_SIZE] = {0};
+    char* response;
 
     // Créer une socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
@@ -45,7 +46,7 @@ int main() {
 
     printf("Server is listening on port %d\n", PORT);
 
-    if ((dialogSocket = accept(server_fd, (struct sockaddr *) &clientAddress, (socklen_t *) &clientAddressLength)) <
+    if ((client_fd = accept(server_fd, (struct sockaddr *) &clientAddress, (socklen_t *) &clientAddressLength)) <
         0) {
         perror("accept failed");
         exit(EXIT_FAILURE);
@@ -53,20 +54,26 @@ int main() {
 
     while (1) {
 
-        ssize_t n = recv(dialogSocket, buffer, BUFFER_SIZE, 0);
-        if (n < 0) {
+        ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
+        if (bytes_received < 0) {
             perror("read");
             exit(EXIT_FAILURE);
         }
         printf("Received command: %s\n", buffer);
 
-        //TODO : map the command to the corresponding action
+        memset(buffer, 0, BUFFER_SIZE);
 
-        strcpy(response, "Command received");
+        response = process_command(buffer);
 
-        send(dialogSocket, response, strlen(response), 0);
+        printf("Response: %s\n", response);
+
+        // Envoyer la réponse au client
+        send(client_fd, response, strlen(response), 0);
+
+        free(response);
+
     }
 
-    close(dialogSocket);
+    close(client_fd);
     return 0;
 }
