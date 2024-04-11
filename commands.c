@@ -4,19 +4,16 @@
 #include "commands.h"
 #include "ping.h"
 
-char *handle_command1(int argc, char *argv[]) {
-    // Traiter les arguments et exécuter l'action personnalisée pour la commande 1
-    char *response = malloc(100 * sizeof(char));
-    snprintf(response, 100, "Command 1 executed with %d arguments\n", argc);
-    return response;
+ int handle_command1(int argc, char *argv[], int client_fd) {
+    send(client_fd, "Command 1\n", 10, 0);
+    return 0;
 }
 
-char *handle_command2(int argc, char *argv[]) {
-    // Traiter les arguments et exécuter l'action personnalisée pour la commande 2
-    char *response = malloc(100 * sizeof(char));
-    snprintf(response, 100, "Command 2 executed with %d arguments\n", argc);
-    return response;
+int handle_command2(int argc, char *argv[], int client_fd) {
+    send(client_fd, "Command 2\n", 10, 0);
+    return 0;
 }
+
 
 command_t commands[] = {
         {"command1", handle_command1},
@@ -98,26 +95,26 @@ command_handler_t find_command_handler(const char *command) {
     return NULL;
 }
 
-char *process_command(char *buffer) {
+int process_command(char *buffer, int client_fd) {
     char **args;
     int arg_count = split_string(buffer, &args);
 
     if (arg_count < 0) {
-        return allocate_string(50);
+        write(client_fd, "Error: invalid command\n", 23);
+        return -1;
     }
 
     command_handler_t handler = find_command_handler(args[0]);
 
-    // Si la commande n'est pas trouvée, renvoyer un message d'erreur
     if (handler == NULL) {
-        char *response = allocate_string(50);
-        snprintf(response, 50, "Unknown command: %s\n", args[0]);
         free_args(args, arg_count);
-        return response;
+        printf("The command %s was not found\n", args[0]);
+        write(client_fd, "Command not found\n", 18);
+        return -1;
     }
 
-    char *response = handler(arg_count - 1, args + 1);
+    handler(arg_count - 1, args + 1, client_fd);
     free_args(args, arg_count);
 
-    return response;
+    return 0;
 }

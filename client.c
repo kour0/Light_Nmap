@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     }
     printf("Connected to server\n");
 
-    while(1) {
+        printf("Enter a command: ");
         fgets(buffer, 255, stdin);
         ssize_t n = send(sockfd, buffer, strlen(buffer), 0);
         if (n < 0) {
@@ -49,15 +49,15 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
-        ssize_t res = recv(sockfd, buffer, 255, 0);
-        if (res > 0) {
-            printf("\nServer: %s\n", buffer);
+        printf("Server response:\n");
+        while ((n = recv(sockfd, buffer, BUFFER_SIZE, 0)) > 0) {
+            printf("%s", buffer);
+            memset(buffer, 0, BUFFER_SIZE);
         }
-
-        bzero(buffer, BUFFER_SIZE);
-
-    }
-
+        if (n < 0) {
+            perror("ERROR reading from socket");
+            exit(1);
+        }
 
 }
 

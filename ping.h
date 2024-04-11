@@ -19,9 +19,6 @@
 #define ICMP_DATA_SIZE 56
 #define TOTAL_ICMP_SIZE (ICMP_HEADER_SIZE + TIMESTAMP_SIZE + ICMP_DATA_SIZE)
 
-unsigned short checksum(void *b, int len);
-void send_echo_request(int sockfd, struct sockaddr_in *dest_addr);
-void receive_echo_reply(int sockfd);
-char* handle_ping(int argc, char *argv[]);
+int handle_ping(int argc, char *argv[], int client_fd);
 
 #endif //PING_H

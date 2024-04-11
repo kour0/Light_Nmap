@@ -10,7 +10,7 @@
 #define PORT 2222
 #define BUFFER_SIZE 1024
 #define MAX_PENDING 5
-int server_fd, client_fd;
+int server_fd;
 
 void handle_sigint(int sig)
 {
@@ -19,16 +19,30 @@ void handle_sigint(int sig)
     exit(0);
 }
 
+void handle_client(int client_sockfd)
+{
+    char buffer[BUFFER_SIZE];
+    printf("Waiting for command...\n\n");
+
+    if ((recv(client_sockfd, buffer, BUFFER_SIZE, 0)) <= 0) {
+        perror("ERROR reading from socket");
+        close(client_sockfd);
+        return;
+    }
+    buffer[strcspn(buffer, "\n")] = 0;
+
+    printf("Command received: %s\n", buffer);
+
+    process_command(buffer, client_sockfd);
+
+    memset(buffer, 0, BUFFER_SIZE);
+    printf("Command processed\n");
+    close(client_sockfd);
+}
 int main() {
     printf("Server is starting...\n");
 
     struct sockaddr_in serverAddress;
-    struct sockaddr_in clientAddress;
-    int clientAddressLength;
-
-
-    char buffer[BUFFER_SIZE] = {0};
-    char* response;
 
     signal(SIGINT, handle_sigint);
 
@@ -57,34 +71,20 @@ int main() {
 
     printf("Server is listening on port %d\n", PORT);
 
-    if ((client_fd = accept(server_fd, (struct sockaddr *) &clientAddress, (socklen_t *) &clientAddressLength)) <
-        0) {
-        perror("accept failed");
-        exit(EXIT_FAILURE);
-    }
-
     while (1) {
-
-        ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
-        if (bytes_received < 0) {
-            perror("read");
+        struct sockaddr_in client_addr;
+        int client_sockfd;
+        socklen_t client_len = sizeof(client_addr);
+        printf("Waiting for a connection...\n");
+        if ((client_sockfd = accept(server_fd, (struct sockaddr *) &client_addr, &client_len)) <
+            0) {
+            perror("accept failed");
             exit(EXIT_FAILURE);
         }
-        printf("Received command: %s\n", buffer);
 
-        response = process_command(buffer);
+        printf("Connection accepted from %s\n", inet_ntoa(client_addr.sin_addr));
 
-        printf("Response: %s\n", response);
-
-        // Envoyer la réponse au client
-        send(client_fd, response, strlen(response), 0);
-
-        free(response);
-
-        memset(buffer, 0, BUFFER_SIZE);
-
+        handle_client(client_sockfd);
     }
-
-    close(client_fd);
     return 0;
 }

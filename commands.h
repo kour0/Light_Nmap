@@ -2,17 +2,14 @@
 #define COMMANDS_H
 
 
-typedef char *(*command_handler_t)(int argc, char *argv[]);
+typedef int(*command_handler_t)(int argc, char *argv[], int client_fd);
 
 typedef struct {
     char *command;
     command_handler_t handler;
 } command_t;
 
-char *handle_command1(int argc, char *argv[]);
-char *handle_command2(int argc, char *argv[]);
-
-char *process_command(char *buffer);
+int process_command(char *buffer, int client_fd);
 
 #endif // COMMANDS_H
 
