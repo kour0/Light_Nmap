@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -21,5 +22,6 @@
 unsigned short checksum(void *b, int len);
 void send_echo_request(int sockfd, struct sockaddr_in *dest_addr);
 void receive_echo_reply(int sockfd);
+char* handle_ping(int argc, char *argv[]);
 
 #endif //PING_H

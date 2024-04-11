@@ -1,6 +1,7 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
+
 typedef char *(*command_handler_t)(int argc, char *argv[]);
 
 typedef struct {

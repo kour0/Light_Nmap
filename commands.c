@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "commands.h"
+#include "ping.h"
 
 char *handle_command1(int argc, char *argv[]) {
     // Traiter les arguments et exécuter l'action personnalisée pour la commande 1
@@ -20,6 +21,7 @@ char *handle_command2(int argc, char *argv[]) {
 command_t commands[] = {
         {"command1", handle_command1},
         {"command2", handle_command2},
+        {"ping", handle_ping},
         {NULL, NULL} // Marqueur de fin de tableau
 };
 

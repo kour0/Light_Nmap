@@ -5,15 +5,23 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "commands.h"
+#include "ping.h"
 
 #define PORT 2222
 #define BUFFER_SIZE 1024
 #define MAX_PENDING 5
+int server_fd, client_fd;
+
+void handle_sigint(int sig)
+{
+    printf("\nServer is shutting down...\n");
+    close(server_fd);
+    exit(0);
+}
 
 int main() {
     printf("Server is starting...\n");
 
-    int server_fd, client_fd;
     struct sockaddr_in serverAddress;
     struct sockaddr_in clientAddress;
     int clientAddressLength;
@@ -21,6 +29,8 @@ int main() {
 
     char buffer[BUFFER_SIZE] = {0};
     char* response;
+
+    signal(SIGINT, handle_sigint);
 
     // Créer une socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
