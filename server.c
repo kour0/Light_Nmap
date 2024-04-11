@@ -12,6 +12,7 @@
 
 int main() {
     printf("Server is starting...\n");
+
     int server_fd, client_fd;
     struct sockaddr_in serverAddress;
     struct sockaddr_in clientAddress;
@@ -61,8 +62,6 @@ int main() {
         }
         printf("Received command: %s\n", buffer);
 
-        memset(buffer, 0, BUFFER_SIZE);
-
         response = process_command(buffer);
 
         printf("Response: %s\n", response);
@@ -71,6 +70,8 @@ int main() {
         send(client_fd, response, strlen(response), 0);
 
         free(response);
+
+        memset(buffer, 0, BUFFER_SIZE);
 
     }
 
