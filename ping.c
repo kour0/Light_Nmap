@@ -16,8 +16,7 @@ unsigned short checksum(void *b, int len) {
     return result;
 }
 
-// Envoi d'un paquet ICMP Echo Request
-void send_echo_request(int sockfd, struct sockaddr_in *dest_addr, int client_fd) {
+int send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
     char packet[TOTAL_ICMP_SIZE];
     memset(packet, 0, sizeof(packet));
 
@@ -39,18 +38,13 @@ void send_echo_request(int sockfd, struct sockaddr_in *dest_addr, int client_fd)
     // Envoi du paquet
     if (sendto(sockfd, packet, sizeof(packet), 0, (struct sockaddr *) dest_addr, sizeof(*dest_addr)) <= 0) {
         perror("sendto failed");
+        return -1;
     }
-
-    printf("Ping sent to %s\n", inet_ntoa(dest_addr->sin_addr));
-
-    char message[50];
-    sprintf(message, "Ping sent to %s\n", inet_ntoa(dest_addr->sin_addr));
-    write(client_fd, message, strlen(message));
-
+    return 0;
 }
 
 // Réception de la réponse ICMP Echo Reply
-void receive_echo_reply(int sockfd, int client_fd) {
+int receive_echo_reply(int sockfd, long *rtt_ms) {
     struct timeval tv;
     fd_set readfds;
     char buffer[1024];
@@ -67,10 +61,10 @@ void receive_echo_reply(int sockfd, int client_fd) {
 
     if (ret == -1) {
         perror("select");
-        return;
+        return -1;
     } else if (ret == 0) {
-        write(client_fd, "Error: Timeout\n", 15);
-        return;
+        // Timeout
+        return 1;
     } else if (FD_ISSET(sockfd, &readfds)) { // Réception d'un paquet ICMP
         // Récupération du paquet ICMP
         struct sockaddr_in from;
@@ -78,7 +72,7 @@ void receive_echo_reply(int sockfd, int client_fd) {
         if (recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &from, &len) <=
             0) {
             perror("recvfrom failed");
-            return;
+            return -1;
         }
 
         struct timeval tv_recv, *tv_send;
@@ -89,9 +83,7 @@ void receive_echo_reply(int sockfd, int client_fd) {
 
         // Vérification du type de message ICMP et de l'ID
         if (icmp_hdr->icmp_type != ICMP_ECHOREPLY) {
-            printf("Invalid ICMP type\n");
-            write(client_fd, "Error: Invalid ICMP type\n", 26);
-            return;
+            return -1;
         }
 
         // On récupère le paquet ICMP Echo Reply
@@ -109,24 +101,12 @@ void receive_echo_reply(int sockfd, int client_fd) {
             return;
         }*/
 
-        // Affichage de l'adresse IP de l'émetteur
-        char sender_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &(from.sin_addr), sender_ip, INET_ADDRSTRLEN);
-        printf("Received ping reply from %s\n", sender_ip);
-        char message[100];
-        sprintf(message, "Received ping reply from %s\n", sender_ip);
-        write(client_fd, message, strlen(message));
-
         // Affichage du timestamp envoyé
         tv_send = (struct timeval *) (buffer + (ip_hdr->ip_hl * 4) + ICMP_HEADER_SIZE);
-        long rtt_ms = (tv_recv.tv_sec - tv_send->tv_sec) * 1000 + (tv_recv.tv_usec - tv_send->tv_usec) / 1000;
-
-        sprintf(message, "RTT: %ld ms\n", rtt_ms);
-        write(client_fd, message, strlen(message));
-
+        *rtt_ms = (tv_recv.tv_sec - tv_send->tv_sec) * 1000 + (tv_recv.tv_usec - tv_send->tv_usec) / 1000;
     }
 
-
+    return 0;
 }
 
 int handle_ping(int argc, char *argv[], int client_fd) {
@@ -134,14 +114,14 @@ int handle_ping(int argc, char *argv[], int client_fd) {
     printf("Starting ping command\n");
 
     if (argc != 1) {
-        write(client_fd, "Error: Invalid number of arguments\n", 35);
+        write(client_fd, "Error: Invalid number of arguments", 35);
         return -1;
     }
 
     int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if (sockfd < 0) {
         perror("socket");
-        write(client_fd, "Error: Unable to create socket\n", 32);
+        write(client_fd, "Error: Unable to create socket", 32);
         return -1;
     }
 
@@ -151,13 +131,34 @@ int handle_ping(int argc, char *argv[], int client_fd) {
 
     if (inet_pton(AF_INET, argv[0], &dest_addr.sin_addr) != 1) {
         perror("inet_pton");
-        write(client_fd, "Error: Invalid IP address\n", 27);
+        write(client_fd, "Error: Invalid IP address", 27);
         close(sockfd);
         return -1;
     }
 
-    send_echo_request(sockfd, &dest_addr, client_fd);
-    receive_echo_reply(sockfd, client_fd);
+    if(send_echo_request(sockfd, &dest_addr) < 0) {
+        close(sockfd);
+        write(client_fd, "Error: Unable to send ping", 28);
+        return -1;
+    }
+    write(client_fd, "Ping sent", 10);
+
+    long rtt_ms;
+    int n;
+    n = receive_echo_reply(sockfd, &rtt_ms);
+    if (n < 0) {
+        close(sockfd);
+        write(client_fd, "Error: Unable to receive ping", 31);
+        return -1;
+    } else if (n == 1) {
+        write(client_fd, "Error: Timeout", 14);
+        return -1;
+    }
+
+    write(client_fd, "Ping received", 13);
+    char response[100];
+    sprintf(response, "RTT: %ld ms", rtt_ms);
+    write(client_fd, response, strlen(response));
 
     close(sockfd);
     return 0;

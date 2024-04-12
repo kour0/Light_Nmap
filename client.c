@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons( (ushort) atoi(argv[2]) );
+    serv_addr.sin_port = htons((ushort) atoi(argv[2]));
     serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
 
     if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
@@ -41,23 +41,25 @@ int main(int argc, char *argv[]) {
     }
     printf("Connected to server\n");
 
-        printf("Enter a command: ");
-        fgets(buffer, 255, stdin);
-        ssize_t n = send(sockfd, buffer, strlen(buffer), 0);
-        if (n < 0) {
-            perror("ERROR writing to socket");
-            exit(1);
-        }
+    printf("Enter a command: ");
+    fgets(buffer, 255, stdin);
+    ssize_t n = send(sockfd, buffer, strlen(buffer), 0);
+    if (n < 0) {
+        perror("ERROR writing to socket");
+        exit(1);
+    }
 
-        printf("Server response:\n");
-        while ((n = recv(sockfd, buffer, BUFFER_SIZE, 0)) > 0) {
-            printf("%s", buffer);
-            memset(buffer, 0, BUFFER_SIZE);
-        }
-        if (n < 0) {
-            perror("ERROR reading from socket");
-            exit(1);
-        }
+    memset(buffer, 0, BUFFER_SIZE);
+
+    printf("Server response:\n");
+    while ((n = recv(sockfd, buffer, BUFFER_SIZE, 0)) > 0) {
+        printf("%s\n", buffer);
+        memset(buffer, 0, BUFFER_SIZE);
+    }
+    if (n < 0) {
+        perror("ERROR reading from socket");
+        exit(1);
+    }
 
 }
 
