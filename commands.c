@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "commands.h"
 #include "ping.h"
+#include "scan_ip.h"
 
  int handle_command1(int argc, char *argv[], int client_fd) {
     send(client_fd, "Command 1\n", 10, 0);
@@ -19,6 +20,7 @@ command_t commands[] = {
         {"command1", handle_command1},
         {"command2", handle_command2},
         {"ping", handle_ping},
+        {"scanip", handle_scanip},
         {NULL, NULL} // Marqueur de fin de tableau
 };
 

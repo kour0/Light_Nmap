@@ -109,7 +109,7 @@ int receive_echo_reply(int sockfd, long *rtt_ms) {
     return 0;
 }
 
-int simple_ping(char *ip) {
+int simple_ping(struct in_addr ip_addr) {
     int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if (sockfd < 0) {
         perror("socket");
@@ -119,12 +119,7 @@ int simple_ping(char *ip) {
     struct sockaddr_in dest_addr;
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
-
-    if (inet_pton(AF_INET, ip, &dest_addr.sin_addr) != 1) {
-        perror("inet_pton");
-        close(sockfd);
-        return -1;
-    }
+    dest_addr.sin_addr = ip_addr;
 
     if(send_echo_request(sockfd, &dest_addr) < 0) {
         close(sockfd);

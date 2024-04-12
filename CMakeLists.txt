@@ -10,7 +10,9 @@ add_executable(server
         ping.h
         server.c
         commands.c
-        commands.h)
+        commands.h
+        scan_ip.c
+        scan_ip.h)
 
 add_executable(client
         client.c)

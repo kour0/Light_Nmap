@@ -19,6 +19,7 @@
 #define ICMP_DATA_SIZE 56
 #define TOTAL_ICMP_SIZE (ICMP_HEADER_SIZE + TIMESTAMP_SIZE + ICMP_DATA_SIZE)
 
+int simple_ping(struct in_addr ip_addr);
 int handle_ping(int argc, char *argv[], int client_fd);
 
 #endif //PING_H
