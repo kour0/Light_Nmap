@@ -22,8 +22,6 @@ network_t get_current_network() {
                 continue;
             }
             struct sockaddr_in *sa = (struct sockaddr_in *) ifa->ifa_addr;
-            printf("Interface: %s\n", ifa->ifa_name);
-            printf("IP address: %s\n", inet_ntoa(sa->sin_addr));
             network_t network = {
                     .ip = ntohl(sa->sin_addr.s_addr),
                     .netmask = ntohl(((struct sockaddr_in *) ifa->ifa_netmask)->sin_addr.s_addr),
@@ -43,6 +41,9 @@ network_t get_current_network() {
 }
 
 int handle_scanip(int argc, char *argv[], int client_fd) {
+
+    write(client_fd, "Starting scanip command\n", 25);
+
     network_t network = get_current_network();
     uint32_t first_ip, last_ip;
     calculate_network_range(&network, &first_ip, &last_ip);
@@ -57,6 +58,10 @@ int handle_scanip(int argc, char *argv[], int client_fd) {
     inet_ntop(AF_INET, &last_ip_addr, last_ip_str, INET_ADDRSTRLEN);
     printf("Network range: %s - %s\n", first_ip_str, last_ip_str);
 
+    char response[INET_ADDRSTRLEN * 2 + 15];
+    sprintf(response, "Network range: %s - %s", first_ip_str, last_ip_str);
+    send(client_fd, response, strlen(response), 0);
+
     for (uint32_t ip = first_ip; ip <= last_ip; ip++) {
         char ip_str[INET_ADDRSTRLEN];
         struct in_addr ip_addr;
@@ -65,6 +70,10 @@ int handle_scanip(int argc, char *argv[], int client_fd) {
         printf("Handling IP address: %s\n", ip_str);
         if (simple_ping(ip_addr) == 0) {
             printf("Host is up: %s\n", ip_str);
+            char response[INET_ADDRSTRLEN + 15];
+            sprintf(response, "Host is up: %s", ip_str);
+            send(client_fd, response, strlen(response), 0);
+
         }
     }
     return 0;
