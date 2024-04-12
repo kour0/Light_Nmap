@@ -109,6 +109,37 @@ int receive_echo_reply(int sockfd, long *rtt_ms) {
     return 0;
 }
 
+int simple_ping(char *ip) {
+    int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (sockfd < 0) {
+        perror("socket");
+        return -1;
+    }
+
+    struct sockaddr_in dest_addr;
+    memset(&dest_addr, 0, sizeof(dest_addr));
+    dest_addr.sin_family = AF_INET;
+
+    if (inet_pton(AF_INET, ip, &dest_addr.sin_addr) != 1) {
+        perror("inet_pton");
+        close(sockfd);
+        return -1;
+    }
+
+    if(send_echo_request(sockfd, &dest_addr) < 0) {
+        close(sockfd);
+        return -1;
+    }
+
+    long rtt_ms;
+    if (receive_echo_reply(sockfd, &rtt_ms) != 0) {
+        close(sockfd);
+        return -1;
+    }
+    close(sockfd);
+    return 0;
+}
+
 int handle_ping(int argc, char *argv[], int client_fd) {
 
     printf("Starting ping command\n");
