@@ -1,28 +1,13 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include "commands.h"
-#include "ping.h"
-#include "scan_ip.h"
 
- int handle_command1(int argc, char *argv[], int client_fd) {
-    send(client_fd, "Command 1\n", 10, 0);
-    return 0;
+
+command_t commands[10];
+int num_commands = 0;
+
+void register_command(command_t *command) {
+    commands[num_commands++] = *command;
 }
 
-int handle_command2(int argc, char *argv[], int client_fd) {
-    send(client_fd, "Command 2\n", 10, 0);
-    return 0;
-}
-
-
-command_t commands[] = {
-        {"command1", handle_command1},
-        {"command2", handle_command2},
-        {"ping", handle_ping},
-        {"scanip", handle_scanip},
-        {NULL, NULL} // Marqueur de fin de tableau
-};
 
 void free_args(char **args, int arg_count) {
     for (int i = 0; i < arg_count; i++) {
@@ -31,13 +16,6 @@ void free_args(char **args, int arg_count) {
     free(args);
 }
 
-char *allocate_string(int size) {
-    char *str = malloc(size * sizeof(char));
-    if (str == NULL) {
-        return "Error: Unable to allocate memory for string\n";
-    }
-    return str;
-}
 
 int split_string(char *buffer, char ***args)
 {

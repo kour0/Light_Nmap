@@ -12,7 +12,9 @@ add_executable(server
         commands.c
         commands.h
         scan_ip.c
-        scan_ip.h)
+        scan_ip.h
+        help.c
+        help.h)
 
 add_executable(client
         client.c)

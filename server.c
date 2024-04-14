@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include "commands.h"
 #include "ping.h"
+#include "scan_ip.h"
+#include "help.h"
 
 #define PORT 2222
 #define BUFFER_SIZE 1024
@@ -39,8 +41,17 @@ void handle_client(int client_sockfd)
     printf("Command processed\n");
     close(client_sockfd);
 }
+
+void init_commands() {
+    register_command(&help_command);
+    register_command(&ping_command);
+    register_command(&scanip_command);
+}
+
 int main() {
     printf("Server is starting...\n");
+
+    init_commands();
 
     struct sockaddr_in serverAddress;
 

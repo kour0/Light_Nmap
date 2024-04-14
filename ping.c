@@ -1,5 +1,7 @@
 #include "ping.h"
 
+command_t ping_command = {"ping", handle_ping, "Usage: ping <IP address>"};
+
 // Calcul du checksum pour l'en-tête ICMP avec les données fournies : b étant l'en-tête ICMP et len sa taille
 unsigned short checksum(void *b, int len) {
     unsigned short *buf = b;

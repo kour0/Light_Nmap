@@ -12,6 +12,7 @@
 #include <netinet/in_systm.h>
 #include <netinet/ip_icmp.h>
 #include <sys/time.h>
+#include "commands.h"
 
 #define TIMEOUT_SECONDS 5
 #define ICMP_HEADER_SIZE sizeof(struct icmp)
@@ -21,5 +22,7 @@
 
 int simple_ping(struct in_addr ip_addr);
 int handle_ping(int argc, char *argv[], int client_fd);
+
+command_t ping_command;
 
 #endif //PING_H
