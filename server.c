@@ -8,6 +8,7 @@
 #include "ping.h"
 #include "scan_ip.h"
 #include "help.h"
+#include "scanport.h"
 
 #define PORT 2222
 #define BUFFER_SIZE 1024
@@ -46,6 +47,7 @@ void init_commands() {
     register_command(&help_command);
     register_command(&ping_command);
     register_command(&scanip_command);
+    register_command(&scanport_command);
 }
 
 int main() {

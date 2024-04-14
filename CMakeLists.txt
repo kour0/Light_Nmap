@@ -14,7 +14,12 @@ add_executable(server
         scan_ip.c
         scan_ip.h
         help.c
-        help.h)
+        help.h
+        scanport.c
+        scanport.h)
 
 add_executable(client
         client.c)
+
+add_compile_options(-fsanitize=address)
+add_link_options(-fsanitize=address)
