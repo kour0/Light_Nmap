@@ -81,15 +81,16 @@ int process_command(char *buffer, int client_fd) {
 
     if (arg_count < 0) {
         write(client_fd, "Error: invalid command\n", 23);
+        free_args(args, arg_count);
         return -1;
     }
 
     command_handler_t handler = find_command_handler(args[0]);
 
     if (handler == NULL) {
-        free_args(args, arg_count);
         printf("The command %s was not found\n", args[0]);
         write(client_fd, "Command not found\n", 18);
+        free_args(args, arg_count);
         return -1;
     }
 
