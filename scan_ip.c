@@ -2,7 +2,7 @@
 #include "ping.h"
 
 
-command_t scanip_command = {"scanip", handle_scanip, "Scan the network for active hosts"};
+command_t scanip_command = {"scanip", handle_scanip, "scanip", "Scan the network for active hosts"};
 
 void calculate_network_range(network_t *network, uint32_t *first_ip, uint32_t *last_ip) {
     uint32_t network_address = network->ip & network->netmask;

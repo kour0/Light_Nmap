@@ -12,6 +12,7 @@ typedef struct {
     char *command;
     command_handler_t handler;
     const char *usage;
+    const char *description;
 } command_t;
 
 extern command_t commands[];

@@ -21,6 +21,5 @@ int handle_scanip(int argc, char *argv[], int client_fd);
 
 command_t scanip_command;
 
-
 #endif //NMAP_SCAN_IP_H
 
