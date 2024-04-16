@@ -1,6 +1,7 @@
 #include "scan_ip.h"
 #include "ping.h"
-
+#include <stdio.h>
+#include <wait.h>
 
 command_t scanip_command = {"scanip", handle_scanip, "scanip", "Scan the network for active hosts"};
 
@@ -65,8 +66,9 @@ int handle_scanip(int argc, char *argv[], int client_fd) {
     snprintf(response, sizeof(response), "Network range: %s - %s", first_ip_str, last_ip_str);
     send(client_fd, response, strlen(response), 0);
 
+    pid_t pid;
     for (uint32_t ip = first_ip; ip <= last_ip; ip++) {
-        pid_t pid = fork();
+        pid = fork();
 
         if (pid < 0) {
             perror("fork");
@@ -89,5 +91,9 @@ int handle_scanip(int argc, char *argv[], int client_fd) {
         }
         // The parent process continues to the next iteration
     }
+
+    // Wait for all child processes to finish
+    int status;
+    while ((pid = wait(&status)) > 0);
     return 0;
 }
