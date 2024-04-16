@@ -23,6 +23,6 @@
 int simple_ping(struct in_addr ip_addr);
 int handle_ping(int argc, char *argv[], int client_fd);
 
-command_t ping_command;
+extern command_t ping_command;
 
 #endif //PING_H

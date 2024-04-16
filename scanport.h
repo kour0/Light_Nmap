@@ -13,6 +13,6 @@
 
 int handle_scanport(int argc, char *argv[], int client_fd);
 
-command_t scanport_command;
+extern command_t scanport_command;
 
 #endif //NMAP_SCANPORT_H
