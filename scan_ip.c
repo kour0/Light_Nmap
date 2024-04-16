@@ -66,18 +66,28 @@ int handle_scanip(int argc, char *argv[], int client_fd) {
     send(client_fd, response, strlen(response), 0);
 
     for (uint32_t ip = first_ip; ip <= last_ip; ip++) {
-        char ip_str[INET_ADDRSTRLEN];
-        struct in_addr ip_addr;
-        ip_addr.s_addr = htonl(ip);
-        inet_ntop(AF_INET, &(ip_addr), ip_str, INET_ADDRSTRLEN);
-        printf("Handling IP address: %s\n", ip_str);
-        if (simple_ping(ip_addr) == 0) {
-            printf("Host is up: %s\n", ip_str);
-            char res[INET_ADDRSTRLEN + 30];
-            snprintf(res, sizeof(res),"Host is up: %s", ip_str);
-            send(client_fd, res, strlen(res), 0);
+        pid_t pid = fork();
 
+        if (pid < 0) {
+            perror("fork");
+            exit(EXIT_FAILURE);
         }
+
+        if (pid == 0) { // This is the child process
+            char ip_str[INET_ADDRSTRLEN];
+            struct in_addr ip_addr;
+            ip_addr.s_addr = htonl(ip);
+            inet_ntop(AF_INET, &(ip_addr), ip_str, INET_ADDRSTRLEN);
+            printf("Handling IP address: %s\n", ip_str);
+            if (simple_ping(ip_addr) == 0) {
+                printf("Host is up: %s\n", ip_str);
+                char res[INET_ADDRSTRLEN + 30];
+                snprintf(res, sizeof(res), "Host is up: %s", ip_str);
+                send(client_fd, res, strlen(res), 0);
+            }
+            exit(EXIT_SUCCESS); // End the child process
+        }
+        // The parent process continues to the next iteration
     }
     return 0;
 }
