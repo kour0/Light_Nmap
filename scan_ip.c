@@ -148,6 +148,9 @@ int handle_scanip_fast(int argc, char *argv[], int client_fd) {
         }
 
         free(ip_response);
+        close(sock);
+
+        exit(0);
 
     } else {
         for (uint32_t ip = first_ip; ip <= last_ip; ip++) {
@@ -165,6 +168,7 @@ int handle_scanip_fast(int argc, char *argv[], int client_fd) {
         sleep(5);
         kill(pid, SIGUSR1);
         waitpid(pid, NULL, 0);
+        send(client_fd, "Scan finished", 14, 0);
     }
 
     return 0;
