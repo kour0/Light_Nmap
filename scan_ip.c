@@ -61,8 +61,8 @@ int handle_scanip(int argc, char *argv[], int client_fd) {
     inet_ntop(AF_INET, &last_ip_addr, last_ip_str, INET_ADDRSTRLEN);
     printf("Network range: %s - %s\n", first_ip_str, last_ip_str);
 
-    char response[INET_ADDRSTRLEN * 2 + 15];
-    sprintf(response, "Network range: %s - %s", first_ip_str, last_ip_str);
+    char response[INET_ADDRSTRLEN * 2 + 30];
+    snprintf(response, sizeof(response), "Network range: %s - %s", first_ip_str, last_ip_str);
     send(client_fd, response, strlen(response), 0);
 
     for (uint32_t ip = first_ip; ip <= last_ip; ip++) {
@@ -73,9 +73,9 @@ int handle_scanip(int argc, char *argv[], int client_fd) {
         printf("Handling IP address: %s\n", ip_str);
         if (simple_ping(ip_addr) == 0) {
             printf("Host is up: %s\n", ip_str);
-            char response[INET_ADDRSTRLEN + 15];
-            sprintf(response, "Host is up: %s", ip_str);
-            send(client_fd, response, strlen(response), 0);
+            char res[INET_ADDRSTRLEN + 30];
+            snprintf(res, sizeof(res),"Host is up: %s", ip_str);
+            send(client_fd, res, strlen(res), 0);
 
         }
     }
