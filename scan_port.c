@@ -2,7 +2,7 @@
 // Created by Alexis on 14/04/2024.
 //
 
-#include "scanport.h"
+#include "scan_port.h"
 
 #include <arpa/inet.h>
 #include <netdb.h>

@@ -15,8 +15,8 @@ add_executable(server
         scan_ip.h
         help.c
         help.h
-        scanport.c
-        scanport.h)
+        scan_port.c
+        scan_port.h)
 
 add_executable(client
         client.c)
