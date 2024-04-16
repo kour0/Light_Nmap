@@ -8,6 +8,7 @@
 #include "ping.h"
 #include "scan_ip.h"
 #include "help.h"
+#include <signal.h>
 #include "scan_port.h"
 
 #define PORT 2222
