@@ -2,8 +2,28 @@
 #include "ping.h"
 #include <stdio.h>
 #include <wait.h>
+#include <signal.h>
+#include <sys/socket.h>
 
-command_t scanip_command = {"scanip", handle_scanip, "scanip", "Scan the network for active hosts"};
+volatile sig_atomic_t stop = 0;
+
+command_t scanipslow_command = {
+        .command = "scanipslow",
+        .handler = handle_scanip_slow,
+        .usage = "scanip",
+        .description = "Scan all IP addresses on the current network"
+};
+
+command_t scanipfast_command = {
+        .command = "scanipfast",
+        .handler = handle_scanip_fast,
+        .usage = "scanip",
+        .description = "Scan all IP addresses on the current network"
+};
+
+void handle_sigusr1(int sig) {
+    stop = 1;
+}
 
 void calculate_network_range(network_t *network, uint32_t *first_ip, uint32_t *last_ip) {
     uint32_t network_address = network->ip & network->netmask;
@@ -44,7 +64,7 @@ network_t get_current_network() {
     return (network_t) {0};
 }
 
-int handle_scanip(int argc, char *argv[], int client_fd) {
+int handle_scanip_slow(int argc, char *argv[], int client_fd) {
 
     write(client_fd, "Starting scanip command\n", 25);
 
@@ -66,34 +86,87 @@ int handle_scanip(int argc, char *argv[], int client_fd) {
     snprintf(response, sizeof(response), "Network range: %s - %s", first_ip_str, last_ip_str);
     send(client_fd, response, strlen(response), 0);
 
-    pid_t pid;
     for (uint32_t ip = first_ip; ip <= last_ip; ip++) {
-        pid = fork();
+        char ip_str[INET_ADDRSTRLEN];
+        struct in_addr ip_addr;
+        ip_addr.s_addr = htonl(ip);
+        inet_ntop(AF_INET, &(ip_addr), ip_str, INET_ADDRSTRLEN);
+        printf("Handling IP address: %s\n", ip_str);
+        if (simple_ping(ip_addr) == 0) {
+            printf("Host is up: %s\n", ip_str);
+            char res[INET_ADDRSTRLEN + 30];
+            snprintf(res, sizeof(res), "Host is up: %s", ip_str);
+            send(client_fd, res, strlen(res), 0);
+        }
+    }
 
-        if (pid < 0) {
-            perror("fork");
-            exit(EXIT_FAILURE);
+    return 0;
+}
+
+int handle_scanip_fast(int argc, char *argv[], int client_fd) {
+
+    write(client_fd, "Starting scanip command\n", 25);
+
+    network_t network = get_current_network();
+    uint32_t first_ip, last_ip;
+    calculate_network_range(&network, &first_ip, &last_ip);
+
+    char first_ip_str[INET_ADDRSTRLEN];
+    char last_ip_str[INET_ADDRSTRLEN];
+    struct in_addr first_ip_addr, last_ip_addr;
+
+    first_ip_addr.s_addr = htonl(first_ip);
+    inet_ntop(AF_INET, &first_ip_addr, first_ip_str, INET_ADDRSTRLEN);
+    last_ip_addr.s_addr = htonl(last_ip);
+    inet_ntop(AF_INET, &last_ip_addr, last_ip_str, INET_ADDRSTRLEN);
+    printf("Network range: %s - %s\n", first_ip_str, last_ip_str);
+
+    char response[INET_ADDRSTRLEN * 2 + 30];
+    snprintf(response, sizeof(response), "Network range: %s - %s", first_ip_str, last_ip_str);
+    send(client_fd, response, strlen(response), 0);
+
+    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+
+    // on fait un fork ou le fils écoute les réponses et le père envoie les requêtes
+    int pid = fork();
+    if (pid == 0) {
+
+        signal(SIGUSR1, handle_sigusr1);
+
+        char* ip_response = malloc(INET_ADDRSTRLEN);
+        ip_response[0] = '\0';
+
+        while(!stop) {
+            receive_echo_reply(sock, NULL, ip_response);
+            if (ip_response[0] != '\0') {
+                printf("Host is up: %s\n", ip_response);
+                char res[INET_ADDRSTRLEN + 30];
+                snprintf(res, sizeof(res), "Host is up: %s", ip_response);
+                send(client_fd, res, strlen(res), 0);
+                ip_response[0] = '\0';
+            }
         }
 
-        if (pid == 0) { // This is the child process
+        free(ip_response);
+
+    } else {
+        for (uint32_t ip = first_ip; ip <= last_ip; ip++) {
             char ip_str[INET_ADDRSTRLEN];
             struct in_addr ip_addr;
             ip_addr.s_addr = htonl(ip);
             inet_ntop(AF_INET, &(ip_addr), ip_str, INET_ADDRSTRLEN);
+            struct sockaddr_in dest_addr;
+            memset(&dest_addr, 0, sizeof(dest_addr));
+            dest_addr.sin_family = AF_INET;
+            dest_addr.sin_addr = ip_addr;
             printf("Handling IP address: %s\n", ip_str);
-            if (simple_ping(ip_addr) == 0) {
-                printf("Host is up: %s\n", ip_str);
-                char res[INET_ADDRSTRLEN + 30];
-                snprintf(res, sizeof(res), "Host is up: %s", ip_str);
-                send(client_fd, res, strlen(res), 0);
-            }
-            exit(EXIT_SUCCESS); // End the child process
+            send_echo_request(sock, &dest_addr);
         }
-        // The parent process continues to the next iteration
+        sleep(5);
+        kill(pid, SIGUSR1);
+        waitpid(pid, NULL, 0);
     }
 
-    // Wait for all child processes to finish
-    int status;
-    while ((pid = wait(&status)) > 0);
     return 0;
+
 }

@@ -47,7 +47,8 @@ void handle_client(int client_sockfd)
 void init_commands() {
     register_command(&help_command);
     register_command(&ping_command);
-    register_command(&scanip_command);
+    register_command(&scanipslow_command);
+    register_command(&scanipfast_command);
     register_command(&scanport_command);
 }
 

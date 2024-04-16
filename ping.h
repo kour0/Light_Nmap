@@ -12,6 +12,7 @@
 #include <netinet/in_systm.h>
 #include <netinet/ip_icmp.h>
 #include <sys/time.h>
+#include <errno.h>
 #include "commands.h"
 
 #define TIMEOUT_SECONDS 5
@@ -22,6 +23,8 @@
 
 int simple_ping(struct in_addr ip_addr);
 int handle_ping(int argc, char *argv[], int client_fd);
+int receive_echo_reply(int sockfd, long *rtt_ms, char* ip_response);
+int send_echo_request(int sockfd, struct sockaddr_in *dest_addr);
 
 extern command_t ping_command;
 

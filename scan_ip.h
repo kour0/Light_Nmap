@@ -17,9 +17,12 @@ typedef struct {
     uint32_t size;
 } network_t;
 
-int handle_scanip(int argc, char *argv[], int client_fd);
+int handle_scanip_slow(int argc, char *argv[], int client_fd);
+int handle_scanip_fast(int argc, char *argv[], int client_fd);
 
-extern command_t scanip_command;
+extern command_t scanipslow_command;
+extern command_t scanipfast_command;
+
 
 #endif //NMAP_SCAN_IP_H
 
