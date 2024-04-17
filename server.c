@@ -33,6 +33,7 @@ void handle_client(int client_sockfd)
         close(client_sockfd);
         return;
     }
+
     buffer[strcspn(buffer, "\n")] = 0;
 
     printf("Command received: %s\n\n", buffer);

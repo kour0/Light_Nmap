@@ -130,7 +130,7 @@ int handle_scanip_fast(int argc, char *argv[], int client_fd) {
         while(!stop) {
             receive_echo_reply(sock, NULL, ip_response);
             if (ip_response[0] != '\0') {
-                printf("Host is up: %s\n", ip_response);
+                //printf("Host is up: %s\n", ip_response);
                 char res[INET_ADDRSTRLEN + 30];
                 snprintf(res, sizeof(res), "Host is up: %s\n", ip_response);
                 send(client_fd, res, strlen(res), 0);
@@ -153,10 +153,12 @@ int handle_scanip_fast(int argc, char *argv[], int client_fd) {
             memset(&dest_addr, 0, sizeof(dest_addr));
             dest_addr.sin_family = AF_INET;
             dest_addr.sin_addr = ip_addr;
-            printf("Handling IP address: %s\n", ip_str);
+            //printf("Handling IP address: %s\n", ip_str);
+            printf("%d/%d IPs scanned\r", ip - first_ip, last_ip - first_ip);
             send_echo_request(sock, &dest_addr);
         }
-        sleep(5);
+        printf("\n");
+        sleep(TIMEOUT_SECONDS);
         kill(pid, SIGUSR1);
         waitpid(pid, NULL, 0);
     }
