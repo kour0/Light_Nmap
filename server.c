@@ -33,8 +33,13 @@ void handle_client(int client_sockfd)
         close(client_sockfd);
         return;
     }
-
     buffer[strcspn(buffer, "\n")] = 0;
+
+    if (strlen(buffer) == 0) {
+        write(client_sockfd, "Error: Empty command\n", 22);
+        close(client_sockfd);
+        return;
+    }
 
     printf("Command received: %s\n\n", buffer);
 
