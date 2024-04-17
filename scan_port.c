@@ -15,8 +15,8 @@
 command_t scanport_command = {
         .command = "scanport",
         .handler = handle_scanport,
-        .usage = "scanport <IP address> [start port] [end port]",
-        .description = "Scan a port on a remote host"
+        .usage = "scanport [-f] <IP address> [start port] [end port]\nIf the -f option is present, the scan will be faster (threads).",
+        .description = "Scan a port on a remote host, or a range of ports.\n"
 };
 
 sem_t sem;

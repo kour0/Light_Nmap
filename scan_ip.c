@@ -10,7 +10,7 @@ volatile sig_atomic_t stop = 0;
 command_t scanip_command = {
         .command = "scanip",
         .handler = handle_scanip,
-        .usage = "scanip [-f]",
+        .usage = "scanip [-f]\nIf the -f option is present, the scan will be faster (fork).",
         .description = "Scan all IP addresses on the current network"
 };
 
