@@ -70,6 +70,7 @@ int main() {
     serverAddress.sin_port = htons(PORT);
     serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 
+    // Permettre la réutilisation de l'adresse et du port
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt failed");

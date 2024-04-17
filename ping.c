@@ -167,7 +167,7 @@ int handle_ping(int argc, char *argv[], int client_fd) {
 
     if (inet_pton(AF_INET, argv[0], &dest_addr.sin_addr) != 1) {
         perror("inet_pton");
-        write(client_fd, "Error: Invalid IP address\n", 26);
+        write(client_fd, "Error: Invalid IP address\n", 27);
         close(sockfd);
         return -1;
     }
