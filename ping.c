@@ -39,7 +39,11 @@ int send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
 
     // Envoi du paquet
     if (sendto(sockfd, packet, sizeof(packet), 0, (struct sockaddr *) dest_addr, sizeof(*dest_addr)) <= 0) {
-        perror("sendto failed");
+        if (errno == EHOSTUNREACH) {
+
+        } else {
+            perror("sendto");
+        }
         return -1;
     }
     return 0;
