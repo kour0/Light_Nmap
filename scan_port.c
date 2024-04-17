@@ -64,9 +64,8 @@ int handle_scanport(int argc, char *argv[], int client_fd) {
     for (int port = start_port; port <= end_port; port++) {
         addr.sin_port = htons(port);
         if (scan_port(addr) == 0) {
-            printf("Port is open: %d\n", port);
             char response[1024];
-            sprintf(response, "Port is open: %d", port);
+            sprintf(response, "Port is open: %d\n", port);
             write(client_fd, response, strlen(response));
         }
         printf("%d/%d ports scanned\r", port, end_port);

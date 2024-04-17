@@ -51,9 +51,9 @@ int main(int argc, char *argv[]) {
 
     memset(buffer, 0, BUFFER_SIZE);
 
-    printf("Server response:\n");
+    printf("Server response:\n\n");
     while ((n = recv(sockfd, buffer, BUFFER_SIZE, 0)) > 0) {
-        printf("%s\n", buffer);
+        printf("%s", buffer);
         memset(buffer, 0, BUFFER_SIZE);
     }
     if (n < 0) {

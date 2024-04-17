@@ -1,25 +1,19 @@
 #include "scan_ip.h"
 #include "ping.h"
 #include <stdio.h>
-#include <wait.h>
+    #include <sys/wait.h>
 #include <signal.h>
 #include <sys/socket.h>
 
 volatile sig_atomic_t stop = 0;
 
-command_t scanipslow_command = {
-        .command = "scanipslow",
-        .handler = handle_scanip_slow,
-        .usage = "scanip",
+command_t scanip_command = {
+        .command = "scanip",
+        .handler = handle_scanip,
+        .usage = "scanip [-f]",
         .description = "Scan all IP addresses on the current network"
 };
 
-command_t scanipfast_command = {
-        .command = "scanipfast",
-        .handler = handle_scanip_fast,
-        .usage = "scanip",
-        .description = "Scan all IP addresses on the current network"
-};
 
 void handle_sigusr1(int sig) {
     stop = 1;
@@ -64,9 +58,8 @@ network_t get_current_network() {
     return (network_t) {0};
 }
 
-int handle_scanip_slow(int argc, char *argv[], int client_fd) {
 
-    write(client_fd, "Starting scanip command\n", 25);
+int handle_scanip_slow(int argc, char *argv[], int client_fd) {
 
     network_t network = get_current_network();
     uint32_t first_ip, last_ip;
@@ -83,7 +76,7 @@ int handle_scanip_slow(int argc, char *argv[], int client_fd) {
     printf("Network range: %s - %s\n", first_ip_str, last_ip_str);
 
     char response[INET_ADDRSTRLEN * 2 + 30];
-    snprintf(response, sizeof(response), "Network range: %s - %s", first_ip_str, last_ip_str);
+    snprintf(response, sizeof(response), "Network range: %s - %s\n", first_ip_str, last_ip_str);
     send(client_fd, response, strlen(response), 0);
 
     for (uint32_t ip = first_ip; ip <= last_ip; ip++) {
@@ -95,7 +88,7 @@ int handle_scanip_slow(int argc, char *argv[], int client_fd) {
         if (simple_ping(ip_addr) == 0) {
             printf("Host is up: %s\n", ip_str);
             char res[INET_ADDRSTRLEN + 30];
-            snprintf(res, sizeof(res), "Host is up: %s", ip_str);
+            snprintf(res, sizeof(res), "Host is up: %s\n", ip_str);
             send(client_fd, res, strlen(res), 0);
         }
     }
@@ -104,8 +97,6 @@ int handle_scanip_slow(int argc, char *argv[], int client_fd) {
 }
 
 int handle_scanip_fast(int argc, char *argv[], int client_fd) {
-
-    write(client_fd, "Starting scanip command\n", 25);
 
     network_t network = get_current_network();
     uint32_t first_ip, last_ip;
@@ -122,7 +113,7 @@ int handle_scanip_fast(int argc, char *argv[], int client_fd) {
     printf("Network range: %s - %s\n", first_ip_str, last_ip_str);
 
     char response[INET_ADDRSTRLEN * 2 + 30];
-    snprintf(response, sizeof(response), "Network range: %s - %s", first_ip_str, last_ip_str);
+    snprintf(response, sizeof(response), "Network range: %s - %s\n", first_ip_str, last_ip_str);
     send(client_fd, response, strlen(response), 0);
 
     int sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
@@ -141,7 +132,7 @@ int handle_scanip_fast(int argc, char *argv[], int client_fd) {
             if (ip_response[0] != '\0') {
                 printf("Host is up: %s\n", ip_response);
                 char res[INET_ADDRSTRLEN + 30];
-                snprintf(res, sizeof(res), "Host is up: %s", ip_response);
+                snprintf(res, sizeof(res), "Host is up: %s\n", ip_response);
                 send(client_fd, res, strlen(res), 0);
                 ip_response[0] = '\0';
             }
@@ -168,9 +159,17 @@ int handle_scanip_fast(int argc, char *argv[], int client_fd) {
         sleep(5);
         kill(pid, SIGUSR1);
         waitpid(pid, NULL, 0);
-        send(client_fd, "Scan finished", 14, 0);
     }
 
     return 0;
 
+}
+
+int handle_scanip(int argc, char *argv[], int client_fd) {
+
+    if (argc >= 1 && strcmp(argv[0], "-f") == 0) {
+        return handle_scanip_fast(argc, argv, client_fd);
+    } else {
+        return handle_scanip_slow(argc, argv, client_fd);
+    }
 }

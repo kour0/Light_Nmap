@@ -94,7 +94,16 @@ int process_command(char *buffer, int client_fd) {
         return -1;
     }
 
+    printf("Starting command %s\n", args[0]);
+    char response[1024];
+    sprintf(response, "Starting command %s\n\n", args[0]);
+    write(client_fd, response, strlen(response));
+
     handler(arg_count - 1, args + 1, client_fd);
+
+    printf("Command processed\n");
+    write(client_fd, "\nCommand processed\n", 19);
+
     free_args(args, arg_count);
 
     return 0;

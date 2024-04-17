@@ -149,17 +149,15 @@ int simple_ping(struct in_addr ip_addr) {
 
 int handle_ping(int argc, char *argv[], int client_fd) {
 
-    printf("Starting ping command\n");
-
     if (argc != 1) {
-        write(client_fd, "Error: Invalid number of arguments", 35);
+        write(client_fd, "Error: Invalid number of arguments\n", 35);
         return -1;
     }
 
     int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if (sockfd < 0) {
         perror("socket");
-        write(client_fd, "Error: Unable to create socket", 31);
+        write(client_fd, "Error: Unable to create socket\n", 31);
         return -1;
     }
 
@@ -169,33 +167,32 @@ int handle_ping(int argc, char *argv[], int client_fd) {
 
     if (inet_pton(AF_INET, argv[0], &dest_addr.sin_addr) != 1) {
         perror("inet_pton");
-        write(client_fd, "Error: Invalid IP address", 26);
+        write(client_fd, "Error: Invalid IP address\n", 26);
         close(sockfd);
         return -1;
     }
 
     if(send_echo_request(sockfd, &dest_addr) < 0) {
         close(sockfd);
-        write(client_fd, "Error: Unable to send ping", 27);
+        write(client_fd, "Error: Unable to send ping\n", 27);
         return -1;
     }
-    write(client_fd, "Ping sent", 10);
+    write(client_fd, "Ping sent\n", 10);
 
     long rtt_ms;
     int n;
     n = receive_echo_reply(sockfd, &rtt_ms, NULL);
     if (n < 0) {
         close(sockfd);
-        write(client_fd, "Error: Unable to receive ping", 30);
+        write(client_fd, "Error: Unable to receive ping\n", 30);
         return -1;
     } else if (n == 1) {
-        write(client_fd, "Error: Timeout", 14);
+        write(client_fd, "Error: Timeout\n", 14);
         return -1;
     }
 
-    write(client_fd, "Ping received", 13);
     char response[100];
-    sprintf(response, "RTT: %ld ms", rtt_ms);
+    sprintf(response, "Ping response received in RTT = %ld ms\n", rtt_ms);
     write(client_fd, response, strlen(response));
 
     close(sockfd);

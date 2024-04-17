@@ -26,7 +26,7 @@ void handle_sigint(int sig)
 void handle_client(int client_sockfd)
 {
     char buffer[BUFFER_SIZE];
-    printf("Waiting for command...\n\n");
+    printf("Waiting for command...\n");
 
     if ((recv(client_sockfd, buffer, BUFFER_SIZE, 0)) <= 0) {
         perror("ERROR reading from socket");
@@ -35,20 +35,18 @@ void handle_client(int client_sockfd)
     }
     buffer[strcspn(buffer, "\n")] = 0;
 
-    printf("Command received: %s\n", buffer);
+    printf("Command received: %s\n\n", buffer);
 
     process_command(buffer, client_sockfd);
 
     memset(buffer, 0, BUFFER_SIZE);
-    printf("Command processed\n");
     close(client_sockfd);
 }
 
 void init_commands() {
     register_command(&help_command);
     register_command(&ping_command);
-    register_command(&scanipslow_command);
-    register_command(&scanipfast_command);
+    register_command(&scanip_command);
     register_command(&scanport_command);
 }
 
@@ -84,7 +82,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    printf("Server is listening on port %d\n", PORT);
+    printf("Server is listening on port %d\n\n", PORT);
 
     while (1) {
         struct sockaddr_in client_addr;
@@ -97,7 +95,7 @@ int main() {
             exit(EXIT_FAILURE);
         }
 
-        printf("Connection accepted from %s\n", inet_ntoa(client_addr.sin_addr));
+        printf("Connection accepted from %s\n\n", inet_ntoa(client_addr.sin_addr));
 
         handle_client(client_sockfd);
     }
