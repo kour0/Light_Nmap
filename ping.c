@@ -39,7 +39,11 @@ int send_echo_request(int sockfd, struct sockaddr_in *dest_addr) {
 
     // Envoi du paquet
     if (sendto(sockfd, packet, sizeof(packet), 0, (struct sockaddr *) dest_addr, sizeof(*dest_addr)) <= 0) {
-        perror("sendto failed");
+        if (errno == EHOSTUNREACH) {
+
+        } else {
+            perror("sendto");
+        }
         return -1;
     }
     return 0;
@@ -167,7 +171,7 @@ int handle_ping(int argc, char *argv[], int client_fd) {
 
     if (inet_pton(AF_INET, argv[0], &dest_addr.sin_addr) != 1) {
         perror("inet_pton");
-        write(client_fd, "Error: Invalid IP address\n", 26);
+        write(client_fd, "Error: Invalid IP address\n", 27);
         close(sockfd);
         return -1;
     }

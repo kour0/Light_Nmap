@@ -66,4 +66,5 @@ a.out
 *.iws
 # CMake
 cmake-build-debug/
+build/
 /.idea

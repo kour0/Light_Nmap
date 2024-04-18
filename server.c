@@ -35,6 +35,12 @@ void handle_client(int client_sockfd)
     }
     buffer[strcspn(buffer, "\n")] = 0;
 
+    if (strlen(buffer) == 0) {
+        write(client_sockfd, "Error: Empty command\n", 22);
+        close(client_sockfd);
+        return;
+    }
+
     printf("Command received: %s\n\n", buffer);
 
     process_command(buffer, client_sockfd);
@@ -70,6 +76,7 @@ int main(int argc, char *argv[]) {
     serverAddress.sin_port = htons(PORT);
     serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 
+    // Permettre la réutilisation de l'adresse et du port
     // Vérifier si le port est passé en argument
     if (argc > 1) {
         serverAddress.sin_port = htons(atoi(argv[1]));

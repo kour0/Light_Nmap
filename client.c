@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
     printf("Connected to server\n");
-
+    printf("See available commands with 'help'\n");
     printf("Enter a command: ");
     fgets(buffer, 255, stdin);
     ssize_t n = send(sockfd, buffer, strlen(buffer), 0);
