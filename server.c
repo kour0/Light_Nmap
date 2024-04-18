@@ -50,7 +50,7 @@ void init_commands() {
     register_command(&scanport_command);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     printf("Server is starting...\n");
 
     init_commands();
@@ -70,6 +70,13 @@ int main() {
     serverAddress.sin_port = htons(PORT);
     serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 
+    // Vérifier si le port est passé en argument
+    if (argc > 1) {
+        serverAddress.sin_port = htons(atoi(argv[1]));
+    } else {
+        serverAddress.sin_port = htons(PORT);
+    }
+
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt failed");
@@ -88,7 +95,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    printf("Server is listening on port %d\n\n", PORT);
+    printf("Server is listening on port %d\n\n", ntohs(serverAddress.sin_port));
 
     while (1) {
         struct sockaddr_in client_addr;
