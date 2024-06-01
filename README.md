@@ -1,4 +1,4 @@
-# Light NMAP
+# Light Nmap
 
 Ce projet est un scanner réseau simple configurable à distance via un gestionnaire. Il utilise un couple client-serveur TCP et permet de réaliser la cartographie d'un réseau local en déterminant les machines opérationnelles et les ports ouverts sur une machine donnée.
 
@@ -39,4 +39,8 @@ Une fois connecté au serveur, le client peut utiliser les commandes suivantes :
 
 ## Avertissement
 
-Veillez à bien réaliser les tests dans un environnement où vous y êtes autorisé (salles TP). L'utilisation de ce scanner réseau sans autorisation peut être illégale et entraîner des conséquences graves.
+Veillez à bien réaliser les tests dans un environnement où vous y êtes autorisé. L'utilisation de ce scanner réseau sans autorisation peut être illégale et entraîner des conséquences graves.
+
+## Licence
+
+Light Nmap est un logiciel open source sous licence MIT. Voir le fichier LICENSE pour plus de détails.
